@@ -1,6 +1,13 @@
 export type DrawMode = 'range' | 'custom';
 
-export type SpinDuration = 'fast' | 'normal' | 'suspense';
+export type SpinDuration = 'fast' | 'normal' | 'suspense' | 'tenSec';
+
+export interface SavedList {
+  id: string;
+  name: string;
+  content: string;
+  updatedAt: number;
+}
 
 export interface DrawHistoryItem {
   id: string;
@@ -19,4 +26,7 @@ export interface LotteryConfig {
   padLength: number;
   duration: SpinDuration;
   soundEnabled: boolean;
+  savedLists: SavedList[];
+  activeListId?: string;
 }
+

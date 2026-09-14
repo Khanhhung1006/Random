@@ -7,19 +7,21 @@ interface HistoryListProps {
   history: DrawHistoryItem[];
   onClearHistory: () => void;
   totalPool: number;
+  isNameMode?: boolean;
 }
 
 export const HistoryList: React.FC<HistoryListProps> = ({
   history,
   onClearHistory,
   totalPool,
+  isNameMode = false,
 }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
     soundManager.playClick();
     const text = history
-      .map((item) => `Lần ${item.order}: ${item.number}`)
+      .map((item) => `Lượt ${item.order}: ${item.number}`)
       .join('\n');
     navigator.clipboard.writeText(text);
     setCopied(true);
@@ -35,7 +37,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
             <History className="w-4 h-4" />
           </div>
           <h3 className="font-bold text-slate-800 text-base sm:text-lg">
-            Danh Sách Số Đã Quay ({history.length}/{totalPool})
+            Danh Sách Đã Được Chọn ({history.length}/{totalPool} {isNameMode ? 'người' : 'số'})
           </h3>
         </div>
 
@@ -79,7 +81,7 @@ export const HistoryList: React.FC<HistoryListProps> = ({
       {/* List content */}
       {history.length === 0 ? (
         <div className="py-8 text-center text-slate-400 text-sm">
-          Chưa có số nào được quay. Hãy nhấn nút "Quay Số" ở trên.
+          Chưa có {isNameMode ? 'tên' : 'số'} nào được chọn. Hãy nhấn nút bắt đầu ở trên.
         </div>
       ) : (
         <div className="mt-4">

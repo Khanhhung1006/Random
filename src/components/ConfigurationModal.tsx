@@ -1,7 +1,23 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Check, HelpCircle, ListFilter, Hash, AlertCircle } from 'lucide-react';
-import { LotteryConfig, DrawMode } from '../types';
+import {
+  X,
+  Check,
+  ListFilter,
+  Hash,
+  AlertCircle,
+  BookmarkPlus,
+  Trash2,
+  Users,
+  FileText,
+  Sparkles,
+  Zap,
+  Clock,
+  Hourglass,
+  Timer,
+} from 'lucide-react';
+import { LotteryConfig, DrawMode, SavedList, SpinDuration } from '../types';
 import { soundManager } from '../utils/audio';
+import { SAMPLE_STUDENTS_42 } from '../utils/storage';
 
 interface ConfigurationModalProps {
   isOpen: boolean;
@@ -23,11 +39,15 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
   const [maxVal, setMaxVal] = useState<number>(config.max);
   const [customText, setCustomText] = useState<string>(config.customListText);
   const [padZero, setPadZero] = useState<boolean>(config.padZero);
+  const [duration, setDuration] = useState<SpinDuration>(config.duration);
+  const [savedLists, setSavedLists] = useState<SavedList[]>(config.savedLists || []);
+  const [newListName, setNewListName] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const presets = [
+  const numberPresets = [
     { label: '1 - 10 (Mini)', min: 1, max: 10 },
     { label: '1 - 50 (Vừa)', min: 1, max: 50 },
     { label: '1 - 100 (Phổ biến)', min: 1, max: 100 },
@@ -35,12 +55,81 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
     { label: '1 - 500 (Sự kiện)', min: 1, max: 500 },
   ];
 
-  const handleApplyPreset = (min: number, max: number) => {
+  const sampleNameSets = [
+    {
+      title: 'Mẫu 42 học sinh',
+      text: SAMPLE_STUDENTS_42,
+    },
+    {
+      title: 'Mẫu 12 nhân viên',
+      text: `Nguyễn Văn An\nTrần Thị Mai\nLê Hoàng Phúc\nPhạm Minh Tuấn\nĐỗ Quỳnh Chi\nVũ Gia Bảo\nBùi Thu Trang\nNgô Đức Trọng\nĐặng Hải Yến\nHoàng Kim Ngân\nLý Khánh Linh\nĐinh Quốc Anh`,
+    },
+  ];
+
+  const handleApplyNumberPreset = (min: number, max: number) => {
     soundManager.playClick();
     setMode('range');
     setMinVal(min);
     setMaxVal(max);
     setErrorMsg(null);
+  };
+
+  const handleApplySampleNames = (text: string) => {
+    soundManager.playClick();
+    setCustomText(text);
+    setErrorMsg(null);
+    setSuccessNotice('Đã áp dụng danh sách mẫu');
+    setTimeout(() => setSuccessNotice(null), 2500);
+  };
+
+  const handleLoadSavedList = (item: SavedList) => {
+    soundManager.playClick();
+    setCustomText(item.content);
+    setSuccessNotice(`Đã tải danh sách: "${item.name}"`);
+    setTimeout(() => setSuccessNotice(null), 2500);
+    setErrorMsg(null);
+  };
+
+  const handleSaveCurrentList = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = newListName.trim();
+    if (!trimmedName) {
+      setErrorMsg('Vui lòng nhập tên để lưu danh sách');
+      return;
+    }
+
+    const items = customText
+      .split(/[\n,;]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    if (items.length === 0) {
+      setErrorMsg('Danh sách đang trống, hãy nhập tên trước khi lưu');
+      return;
+    }
+
+    soundManager.playClick();
+    const newList: SavedList = {
+      id: `list-${Date.now()}`,
+      name: trimmedName,
+      content: customText,
+      updatedAt: Date.now(),
+    };
+
+    const updated = [newList, ...savedLists];
+    setSavedLists(updated);
+    setNewListName('');
+    setErrorMsg(null);
+    setSuccessNotice(`Đã lưu thành công: "${trimmedName}"`);
+    setTimeout(() => setSuccessNotice(null), 3000);
+  };
+
+  const handleDeleteSavedList = (id: string, name: string) => {
+    soundManager.playClick();
+    const filtered = savedLists.filter((l) => l.id !== id);
+    setSavedLists(filtered);
+    setSuccessNotice(`Đã xóa danh sách "${name}"`);
+    setTimeout(() => setSuccessNotice(null), 2000);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -66,7 +155,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
         .map((s) => s.trim())
         .filter((s) => s.length > 0);
       if (items.length === 0) {
-        setErrorMsg('Vui lòng nhập ít nhất một số vào danh sách tùy chọn');
+        setErrorMsg('Vui lòng nhập ít nhất một tên hoặc số vào danh sách');
         return;
       }
     }
@@ -79,29 +168,38 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
       max: maxVal,
       customListText: customText,
       padZero,
+      savedLists,
+      duration,
     });
     onClose();
   };
 
-  // Calculate total items preview
+  // Calculate parsed items count
+  const parsedItems = customText
+    .split(/[\n,;]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
   const previewCount =
-    mode === 'range'
-      ? Math.max(0, maxVal - minVal + 1)
-      : customText
-          .split(/[\n,;]+/)
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0).length;
+    mode === 'range' ? Math.max(0, maxVal - minVal + 1) : parsedItems.length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/70">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/80">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold text-base">
               ⚙️
             </div>
-            <h2 className="text-lg font-bold text-slate-900">Cài Đặt Số Quay Thưởng</h2>
+            <div>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 leading-none">
+                Cài Đặt Danh Sách & Chế Độ Quay
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Nhập tên, số và lưu danh sách tự động cho những lần sau
+              </p>
+            </div>
           </div>
           <button
             type="button"
@@ -109,36 +207,20 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
               soundManager.playClick();
               onClose();
             }}
-            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-all"
+            className="p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-all cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-5 overflow-y-auto">
           {/* Mode Switch Tabs */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-              Hình thức chọn số
+              Chọn chế độ quay
             </label>
             <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl border border-slate-200 text-sm font-medium">
-              <button
-                type="button"
-                onClick={() => {
-                  soundManager.playClick();
-                  setMode('range');
-                  setErrorMsg(null);
-                }}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all ${
-                  mode === 'range'
-                    ? 'bg-white text-slate-900 font-bold shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <Hash className="w-4 h-4 text-amber-600" />
-                <span>Theo khoảng số (Min - Max)</span>
-              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -146,20 +228,154 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                   setMode('custom');
                   setErrorMsg(null);
                 }}
-                className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg transition-all ${
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg transition-all cursor-pointer ${
                   mode === 'custom'
-                    ? 'bg-white text-slate-900 font-bold shadow-xs'
+                    ? 'bg-white text-amber-700 font-bold shadow-xs'
                     : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                <ListFilter className="w-4 h-4 text-amber-600" />
-                <span>Danh sách tự chọn</span>
+                <Users className="w-4 h-4 text-amber-600" />
+                <span>Danh sách Tên / Người</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundManager.playClick();
+                  setMode('range');
+                  setErrorMsg(null);
+                }}
+                className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg transition-all cursor-pointer ${
+                  mode === 'range'
+                    ? 'bg-white text-amber-700 font-bold shadow-xs'
+                    : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                <Hash className="w-4 h-4 text-amber-600" />
+                <span>Khoảng số (Min - Max)</span>
               </button>
             </div>
           </div>
 
-          {/* Mode = Range */}
-          {mode === 'range' ? (
+          {/* Mode = Custom (Name / Custom list) */}
+          {mode === 'custom' ? (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700">
+                    Danh sách Tên người tham gia:
+                  </label>
+                  <span className="text-xs text-slate-500">
+                    Mỗi tên trên một dòng (hoặc cách nhau bằng dấu phẩy)
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {sampleNameSets.map((sample) => (
+                    <button
+                      key={sample.title}
+                      type="button"
+                      onClick={() => handleApplySampleNames(sample.text)}
+                      className="text-[11px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    >
+                      {sample.title}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomText('');
+                      setErrorMsg(null);
+                    }}
+                    className="text-[11px] text-slate-500 hover:text-rose-600 px-2 py-1 rounded hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    Xóa trắng
+                  </button>
+                </div>
+              </div>
+
+              {/* Textarea */}
+              <div className="relative">
+                <textarea
+                  rows={6}
+                  value={customText}
+                  onChange={(e) => {
+                    setCustomText(e.target.value);
+                    setErrorMsg(null);
+                  }}
+                  placeholder="Nhập hoặc dán danh sách tên tại đây, ví dụ:&#10;Nguyễn Văn An&#10;Trần Thị Mai&#10;Lê Hoàng Phúc&#10;Phạm Minh Tuấn..."
+                  className="w-full p-3.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-slate-800 text-sm font-medium leading-relaxed bg-slate-50/50 focus:bg-white transition-all resize-y"
+                />
+                <div className="absolute bottom-3 right-3 text-xs font-semibold px-2 py-0.5 rounded-md bg-white/90 border border-slate-200 text-slate-600 shadow-xs">
+                  {parsedItems.length} tên hợp lệ
+                </div>
+              </div>
+
+              {/* Save List Section */}
+              <div className="bg-amber-50/50 border border-amber-200/80 rounded-2xl p-3.5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
+                    <BookmarkPlus className="w-4 h-4 text-amber-600" />
+                    <span>Lưu danh sách để dùng lần sau</span>
+                  </div>
+                  <span className="text-[11px] text-emerald-700 font-medium bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                    Tự động ghi nhớ trên máy
+                  </span>
+                </div>
+
+                {/* Save input */}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={newListName}
+                    onChange={(e) => setNewListName(e.target.value)}
+                    placeholder="Đặt tên danh sách (VD: Phòng Marketing, Lớp 12A...)"
+                    className="flex-1 px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500/50 bg-white"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveCurrentList}
+                    className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
+                  >
+                    Lưu danh sách này
+                  </button>
+                </div>
+
+                {/* List of Saved Presets */}
+                {savedLists.length > 0 && (
+                  <div className="pt-2 border-t border-amber-200/60">
+                    <span className="text-[11px] font-semibold text-slate-600 block mb-1.5">
+                      Các danh sách đã lưu sẵn:
+                    </span>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                      {savedLists.map((item) => (
+                        <div
+                          key={item.id}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-amber-200 text-xs text-slate-800 shadow-xs hover:border-amber-400 transition-all"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleLoadSavedList(item)}
+                            className="font-medium text-slate-800 hover:text-amber-700 cursor-pointer text-left"
+                            title="Bấm để tải danh sách này vào ô nhập"
+                          >
+                            {item.name}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSavedList(item.id, item.name)}
+                            className="text-slate-400 hover:text-rose-600 p-0.5 rounded cursor-pointer transition-colors"
+                            title="Xóa danh sách này"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Mode = Range */
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -192,12 +408,12 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                   Bộ số mẫu nhanh:
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {presets.map((p) => (
+                  {numberPresets.map((p) => (
                     <button
                       key={p.label}
                       type="button"
-                      onClick={() => handleApplyPreset(p.min, p.max)}
-                      className={`text-xs px-3 py-1.5 rounded-lg border transition-all ${
+                      onClick={() => handleApplyNumberPreset(p.min, p.max)}
+                      className={`text-xs px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
                         minVal === p.min && maxVal === p.max
                           ? 'bg-amber-500 text-white border-amber-600 font-semibold'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -208,57 +424,115 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
                   ))}
                 </div>
               </div>
-            </div>
-          ) : (
-            /* Mode = Custom List */
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-slate-600">
-                  Nhập danh sách số hoặc mã:
-                </label>
-                <span className="text-xs text-slate-500">Phân tách bằng dấu phẩy hoặc xuống dòng</span>
+
+              {/* Options: Leading Zero */}
+              <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <input
+                    id="pad-zero-checkbox"
+                    type="checkbox"
+                    checked={padZero}
+                    onChange={(e) => setPadZero(e.target.checked)}
+                    className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
+                  />
+                  <label
+                    htmlFor="pad-zero-checkbox"
+                    className="text-sm font-medium text-slate-700 select-none cursor-pointer"
+                  >
+                    Tự động đệm số 0 ở đầu (ví dụ: 01, 02... hoặc 001, 002...)
+                  </label>
+                </div>
               </div>
-              <textarea
-                rows={5}
-                value={customText}
-                onChange={(e) => {
-                  setCustomText(e.target.value);
-                  setErrorMsg(null);
-                }}
-                placeholder="Ví dụ: 08, 15, 23, 42, 68, 79, 88, 99&#10;hoặc dán danh sách số báo danh vào đây..."
-                className="w-full p-3.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-slate-800 text-sm font-mono leading-relaxed"
-              />
             </div>
           )}
 
-          {/* Options: Leading Zero */}
-          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <input
-                id="pad-zero-checkbox"
-                type="checkbox"
-                checked={padZero}
-                onChange={(e) => setPadZero(e.target.checked)}
-                className="w-4 h-4 text-amber-600 rounded border-slate-300 focus:ring-amber-500"
-              />
-              <label htmlFor="pad-zero-checkbox" className="text-sm font-medium text-slate-700 select-none cursor-pointer">
-                Tự động đệm số 0 ở đầu (ví dụ: 01, 02... hoặc 001, 002...)
-              </label>
+          {/* Duration Selector */}
+          <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl">
+            <label className="block text-xs font-semibold text-slate-600 mb-2">
+              Thời gian quay mỗi lượt:
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  soundManager.playClick();
+                  setDuration('fast');
+                }}
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  duration === 'fast'
+                    ? 'bg-amber-500 text-white border-amber-600 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Nhanh (1.5s)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundManager.playClick();
+                  setDuration('normal');
+                }}
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  duration === 'normal'
+                    ? 'bg-amber-500 text-white border-amber-600 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Vừa (3s)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundManager.playClick();
+                  setDuration('suspense');
+                }}
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  duration === 'suspense'
+                    ? 'bg-amber-500 text-white border-amber-600 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <Hourglass className="w-3.5 h-3.5" />
+                <span>Kịch tính (5s)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundManager.playClick();
+                  setDuration('tenSec');
+                }}
+                className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
+                  duration === 'tenSec'
+                    ? 'bg-amber-500 text-white border-amber-600 font-bold shadow-xs'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <Timer className="w-3.5 h-3.5" />
+                <span>10s (Hồi hộp)</span>
+              </button>
             </div>
           </div>
 
-          {/* Error Message */}
+          {/* Feedback Notices */}
           {errorMsg && (
             <div className="flex items-center gap-2 p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs">
               <AlertCircle className="w-4 h-4 shrink-0" />
               <span>{errorMsg}</span>
             </div>
           )}
+          {successNotice && (
+            <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium">
+              <Check className="w-4 h-4 shrink-0 text-emerald-600" />
+              <span>{successNotice}</span>
+            </div>
+          )}
 
           {/* Pool Summary Box */}
           <div className="p-3 bg-amber-50/60 border border-amber-200/80 rounded-xl flex items-center justify-between text-xs text-amber-900">
-            <span>Tổng số lượng số trong danh sách:</span>
-            <strong className="text-sm font-bold text-amber-800">{previewCount} số</strong>
+            <span>Tổng số lượng {mode === 'custom' ? 'tên/người' : 'số'} trong danh sách:</span>
+            <strong className="text-sm font-bold text-amber-800">{previewCount}</strong>
           </div>
 
           {/* Submit Actions */}
@@ -278,7 +552,7 @@ export const ConfigurationModal: React.FC<ConfigurationModalProps> = ({
               className="px-6 py-2.5 rounded-xl text-sm font-bold text-white bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Check className="w-4 h-4" />
-              <span>Áp dụng & Làm mới</span>
+              <span>Áp dụng & Bắt đầu</span>
             </button>
           </div>
         </form>

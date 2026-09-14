@@ -1,6 +1,6 @@
 {
   "name": "Quay Số Ngẫu Nhiên",
-  "description": "Ứng dụng quay số ngẫu nhiên với âm thanh, số to rõ, hiệu ứng mượt mà và chế độ loại trừ số đã quay.",
+  "description": "Ứng dụng quay số và chọn tên ngẫu nhiên theo danh sách lưu trữ, hiển thị to rõ, hiệu ứng động mượt mà, âm thanh sinh động và chế độ mỗi kết quả chỉ hiện 1 lần.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

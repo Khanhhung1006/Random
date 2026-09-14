@@ -11,7 +11,59 @@ interface DisplayNumberProps {
   totalRemaining: number;
   totalPool: number;
   uniqueOnly: boolean;
+  isNameMode?: boolean;
 }
+
+const getTextSizeClass = (
+  text: string | number | null,
+  isSpinning: boolean,
+  hasDrawn: boolean
+) => {
+  if (text === null) return '';
+  const str = String(text).trim();
+  const len = str.length;
+
+  // Short number or short code (<= 4 chars)
+  if (len <= 4) {
+    if (isSpinning) {
+      return 'text-[5.75rem] sm:text-[8rem] md:text-[10.5rem] lg:text-[14.5rem]';
+    }
+    if (hasDrawn) {
+      return 'text-[7.75rem] sm:text-[10.5rem] md:text-[14.5rem] lg:text-[17rem]';
+    }
+    return 'text-[5.75rem] sm:text-[8rem] md:text-[10.5rem]';
+  }
+
+  // Short word or 5-8 chars (e.g. "Tuấn", "Mai Anh")
+  if (len <= 8) {
+    if (isSpinning) {
+      return 'text-5xl sm:text-6xl md:text-7xl lg:text-8xl';
+    }
+    if (hasDrawn) {
+      return 'text-6xl sm:text-7xl md:text-8xl lg:text-9xl leading-tight';
+    }
+    return 'text-5xl sm:text-6xl md:text-7xl';
+  }
+
+  // Medium name (9-16 chars, e.g. "Nguyễn Văn An")
+  if (len <= 16) {
+    if (isSpinning) {
+      return 'text-3xl sm:text-4xl md:text-5xl lg:text-6xl leading-tight';
+    }
+    if (hasDrawn) {
+      return 'text-4xl sm:text-5xl md:text-6xl lg:text-7xl leading-tight';
+    }
+    return 'text-3xl sm:text-4xl md:text-5xl';
+  }
+
+  // Long name (17-25 chars, e.g. "Nguyễn Hoàng Minh Khôi")
+  if (len <= 25) {
+    return 'text-2xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight';
+  }
+
+  // Very long text (> 25 chars)
+  return 'text-xl sm:text-2xl md:text-3xl lg:text-4xl leading-snug';
+};
 
 export const DisplayNumber: React.FC<DisplayNumberProps> = ({
   currentDisplay,
@@ -22,7 +74,10 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
   totalRemaining,
   totalPool,
   uniqueOnly,
+  isNameMode = false,
 }) => {
+  const textSizeClass = getTextSizeClass(currentDisplay, isSpinning, hasDrawn);
+
   return (
     <div className="relative w-full max-w-5xl mx-auto my-4 sm:my-6 flex flex-col items-center justify-center">
       {/* Decorative Outer Aura */}
@@ -64,11 +119,11 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
               className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wider uppercase bg-amber-500/20 text-amber-300 border border-amber-400/40 backdrop-blur-sm"
             >
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-              Đang quay ngẫu nhiên...
+              {isNameMode ? 'Đang chọn ngẫu nhiên...' : 'Đang quay ngẫu nhiên...'}
             </motion.div>
           ) : isFinished ? (
             <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide bg-rose-500/20 text-rose-300 border border-rose-400/40">
-              <span>Đã quay hết số trong danh sách!</span>
+              <span>{isNameMode ? 'Đã chọn hết tất cả tên trong danh sách!' : 'Đã quay hết số trong danh sách!'}</span>
             </div>
           ) : hasDrawn ? (
             <motion.div
@@ -77,7 +132,7 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
               className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold tracking-wide bg-amber-500/20 text-amber-300 border border-amber-400/40 shadow-sm"
             >
               <Trophy className="w-4 h-4 text-amber-400" />
-              <span>Số được chọn (Lần quay #{drawOrder})</span>
+              <span>{isNameMode ? 'Người được chọn' : 'Số được chọn'} (Lượt #{drawOrder})</span>
             </motion.div>
           ) : (
             <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium tracking-wide bg-slate-100 text-slate-600 border border-slate-200">
@@ -87,7 +142,7 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
           )}
         </div>
 
-        {/* Core Number Output - Big, Bold, Tabular, Crystal Clear (+30% Larger) */}
+        {/* Core Output - Big, Bold, Tabular, Crystal Clear */}
         <div className="relative z-10 w-full flex items-center justify-center flex-1 my-auto overflow-hidden">
           <AnimatePresence mode="popLayout">
             {currentDisplay !== null ? (
@@ -115,16 +170,16 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
                   damping: 25,
                   duration: isSpinning ? 0.05 : 0.4,
                 }}
-                className="relative select-none text-center px-4"
+                className="relative select-none text-center px-4 max-w-full"
               >
                 <span
                   id="target-selected-number"
-                  className={`tabular-nums font-black tracking-tight leading-none transition-colors duration-300 ${
+                  className={`tabular-nums font-black tracking-tight leading-tight transition-colors duration-300 break-words max-w-4xl inline-block ${textSizeClass} ${
                     isSpinning
-                      ? 'text-amber-300 drop-shadow-[0_0_25px_rgba(245,158,11,0.6)] text-[5.75rem] sm:text-[8rem] md:text-[10.5rem] lg:text-[14.5rem]'
+                      ? 'text-amber-300 drop-shadow-[0_0_25px_rgba(245,158,11,0.6)]'
                       : hasDrawn
-                      ? 'text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-300 to-amber-500 drop-shadow-[0_12px_30px_rgba(245,158,11,0.45)] text-[7.75rem] sm:text-[10.5rem] md:text-[14.5rem] lg:text-[17rem]'
-                      : 'text-slate-800 text-[5.75rem] sm:text-[8rem] md:text-[10.5rem]'
+                      ? 'text-transparent bg-clip-text bg-gradient-to-b from-amber-200 via-amber-300 to-amber-500 drop-shadow-[0_12px_30px_rgba(245,158,11,0.45)]'
+                      : 'text-slate-800'
                   }`}
                 >
                   {currentDisplay}
@@ -139,7 +194,7 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
                     className="flex items-center justify-center gap-2 mt-4 text-emerald-400 font-semibold text-sm sm:text-base"
                   >
                     <Award className="w-5 h-5" />
-                    <span>Kết quả hợp lệ</span>
+                    <span>Chúc mừng bạn! Bạn đã được chọn ^_^</span>
                   </motion.div>
                 )}
               </motion.div>
@@ -149,16 +204,9 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
                 <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center mb-4 text-slate-400">
                   <Hash className="w-12 h-12 text-slate-300" />
                 </div>
-                <div className="text-2xl sm:text-3xl font-bold text-slate-700 mb-1">
-                  Chưa quay số nào
+                <div className="text-2xl sm:text-3xl font-bold text-slate-700">
+                  {isNameMode ? 'Chưa chọn tên nào' : 'Chưa quay số nào'}
                 </div>
-                <p className="text-sm text-slate-500 max-w-sm">
-                  Nhấn nút <strong className="text-amber-600 font-semibold">QUAY SỐ</strong> hoặc bấm{' '}
-                  <kbd className="px-2 py-0.5 bg-slate-100 border border-slate-300 rounded text-xs font-mono text-slate-700">
-                    Phím Cách (Space)
-                  </kbd>{' '}
-                  để bắt đầu
-                </p>
               </div>
             )}
           </AnimatePresence>
@@ -168,7 +216,7 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
         <div className="z-10 w-full mt-4 sm:mt-6 pt-4 border-t border-slate-700/50 flex items-center justify-between px-2 sm:px-6 text-xs sm:text-sm">
           <div className="flex items-center gap-2">
             <span className={hasDrawn ? 'text-slate-400' : 'text-slate-500'}>
-              {uniqueOnly ? 'Chế độ: Mỗi số 1 lần' : 'Chế độ: Lặp lại tự do'}
+              {uniqueOnly ? 'Chế độ: Mỗi kết quả 1 lần' : 'Chế độ: Lặp lại tự do'}
             </span>
           </div>
 
@@ -188,7 +236,7 @@ export const DisplayNumber: React.FC<DisplayNumberProps> = ({
               >
                 {totalRemaining}
               </strong>
-              /{totalPool} số
+              /{totalPool} {isNameMode ? 'tên' : 'số'}
             </span>
           </div>
         </div>

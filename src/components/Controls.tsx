@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, RotateCcw, Zap, Clock, Hourglass, CheckSquare, Square } from 'lucide-react';
+import { Play, RotateCcw, Zap, Clock, Hourglass, Timer, CheckSquare, Square } from 'lucide-react';
 import { SpinDuration } from '../types';
 import { soundManager } from '../utils/audio';
 
@@ -13,6 +13,7 @@ interface ControlsProps {
   onSpin: () => void;
   onReset: () => void;
   canSpin: boolean;
+  isNameMode?: boolean;
 }
 
 export const Controls: React.FC<ControlsProps> = ({
@@ -25,6 +26,7 @@ export const Controls: React.FC<ControlsProps> = ({
   onSpin,
   onReset,
   canSpin,
+  isNameMode = false,
 }) => {
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-6">
@@ -41,7 +43,7 @@ export const Controls: React.FC<ControlsProps> = ({
             className="w-full sm:w-auto min-w-[280px] px-8 py-5 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 shadow-lg shadow-rose-500/25 flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
           >
             <RotateCcw className="w-6 h-6 animate-spin-reverse" />
-            <span>HẾT SỐ • BẤM ĐẶT LẠI</span>
+            <span>HẾT {isNameMode ? 'TÊN' : 'SỐ'} • BẤM ĐẶT LẠI</span>
           </button>
         ) : (
           <button
@@ -65,22 +67,17 @@ export const Controls: React.FC<ControlsProps> = ({
             {isSpinning ? (
               <>
                 <span className="w-5 h-5 border-3 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Đang quay số...</span>
+                <span>{isNameMode ? 'Đang chọn tên...' : 'Đang quay số...'}</span>
               </>
             ) : (
               <>
                 <Play className="w-6 h-6 fill-current" />
-                <span>QUAY SỐ</span>
+                <span>{isNameMode ? 'CHỌN TÊN' : 'QUAY SỐ'}</span>
               </>
             )}
           </button>
         )}
       </div>
-
-      {/* Keyboard Hint */}
-      <p className="text-xs text-slate-500 text-center">
-        Mẹo: Có thể bấm phím <kbd className="px-2 py-0.5 bg-white border border-slate-300 rounded shadow-xs font-mono font-medium text-slate-700">Space</kbd> (phím cách) trên bàn phím để quay nhanh
-      </p>
 
       {/* Auxiliary Settings Bar */}
       <div className="w-full bg-white/80 backdrop-blur-sm border border-slate-200/80 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm">
@@ -102,10 +99,12 @@ export const Controls: React.FC<ControlsProps> = ({
           </div>
           <div>
             <div className="text-sm font-semibold text-slate-800">
-              Mỗi số chỉ xuất hiện 1 lần
+              Mỗi {isNameMode ? 'người' : 'số'} chỉ xuất hiện 1 lần
             </div>
             <div className="text-xs text-slate-500">
-              {uniqueOnly ? 'Đã bật: Không bị trùng lặp số đã quay' : 'Tắt: Các số có thể lặp lại ngẫu nhiên'}
+              {uniqueOnly
+                ? `Đã bật: Không bị trùng lặp ${isNameMode ? 'người' : 'số'} đã quay`
+                : 'Tắt: Có thể lặp lại ngẫu nhiên'}
             </div>
           </div>
         </div>
@@ -115,14 +114,14 @@ export const Controls: React.FC<ControlsProps> = ({
           <span className="text-xs font-medium text-slate-500 hidden sm:inline mr-1">
             Tốc độ:
           </span>
-          <div className="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-medium">
+          <div className="inline-flex flex-wrap sm:flex-nowrap items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-medium gap-0.5">
             <button
               type="button"
               onClick={() => {
                 soundManager.playClick();
                 onChangeDuration('fast');
               }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 duration === 'fast'
                   ? 'bg-white text-slate-900 font-bold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -137,7 +136,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 soundManager.playClick();
                 onChangeDuration('normal');
               }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 duration === 'normal'
                   ? 'bg-white text-slate-900 font-bold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -152,7 +151,7 @@ export const Controls: React.FC<ControlsProps> = ({
                 soundManager.playClick();
                 onChangeDuration('suspense');
               }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
                 duration === 'suspense'
                   ? 'bg-white text-slate-900 font-bold shadow-xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -160,6 +159,21 @@ export const Controls: React.FC<ControlsProps> = ({
             >
               <Hourglass className="w-3.5 h-3.5 text-purple-500" />
               <span>Kịch tính (5s)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                soundManager.playClick();
+                onChangeDuration('tenSec');
+              }}
+              className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                duration === 'tenSec'
+                  ? 'bg-white text-slate-900 font-bold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <Timer className="w-3.5 h-3.5 text-rose-500" />
+              <span>10s</span>
             </button>
           </div>
         </div>

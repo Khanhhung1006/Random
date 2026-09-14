@@ -7,6 +7,7 @@ interface FinishedModalProps {
   onClose: () => void;
   onReset: () => void;
   totalDrawn: number;
+  isNameMode?: boolean;
 }
 
 export const FinishedModal: React.FC<FinishedModalProps> = ({
@@ -14,6 +15,7 @@ export const FinishedModal: React.FC<FinishedModalProps> = ({
   onClose,
   onReset,
   totalDrawn,
+  isNameMode = false,
 }) => {
   if (!isOpen) return null;
 
@@ -26,7 +28,7 @@ export const FinishedModal: React.FC<FinishedModalProps> = ({
             soundManager.playClick();
             onClose();
           }}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors"
+          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
         >
           <X className="w-5 h-5" />
         </button>
@@ -38,17 +40,17 @@ export const FinishedModal: React.FC<FinishedModalProps> = ({
 
         {/* Heading */}
         <h3 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mb-2">
-          ĐÃ QUAY HẾT SỐ!
+          {isNameMode ? 'ĐÃ CHỌN HẾT TÊN!' : 'ĐÃ QUAY HẾT SỐ!'}
         </h3>
 
         <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-          Tất cả <strong className="text-amber-600 font-bold text-base">{totalDrawn}</strong> số trong danh sách đã được bốc thăm đầy đủ và không còn số nào trong danh sách chờ.
+          Tất cả <strong className="text-amber-600 font-bold text-base">{totalDrawn}</strong> {isNameMode ? 'người / tên' : 'số'} trong danh sách đã được bốc thăm đầy đủ và không còn ai trong danh sách chờ.
         </p>
 
         <div className="w-full bg-amber-50/80 border border-amber-200/70 rounded-2xl p-4 mb-6 text-left flex items-start gap-3">
           <CheckCircle2 className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
           <div className="text-xs text-amber-900 leading-relaxed">
-            Mỗi số đều đã xuất hiện đúng 1 lần theo quy định bốc thăm minh bạch. Bạn có thể làm mới để bắt đầu một lượt quay mới bất kỳ lúc nào.
+            Mỗi {isNameMode ? 'tên' : 'số'} đều đã xuất hiện đúng 1 lần theo quy định bốc thăm minh bạch. Bạn có thể làm mới để bắt đầu một lượt quay mới bất kỳ lúc nào.
           </div>
         </div>
 

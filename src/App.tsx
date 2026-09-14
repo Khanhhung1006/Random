@@ -8,21 +8,10 @@ import { FinishedModal } from './components/FinishedModal';
 import { LotteryConfig, DrawHistoryItem, SpinDuration } from './types';
 import { soundManager } from './utils/audio';
 import { triggerCelebration, triggerGrandFinish } from './utils/confetti';
-
-const DEFAULT_CONFIG: LotteryConfig = {
-  mode: 'range',
-  min: 1,
-  max: 100,
-  customListText: '1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20',
-  uniqueOnly: true,
-  padZero: true,
-  padLength: 2,
-  duration: 'normal',
-  soundEnabled: true,
-};
+import { loadSavedConfig, saveConfigToStorage } from './utils/storage';
 
 export default function App() {
-  const [config, setConfig] = useState<LotteryConfig>(DEFAULT_CONFIG);
+  const [config, setConfig] = useState<LotteryConfig>(() => loadSavedConfig());
   const [isConfigOpen, setIsConfigOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
@@ -37,6 +26,12 @@ export default function App() {
   useEffect(() => {
     soundManager.setMuted(!config.soundEnabled);
   }, [config.soundEnabled]);
+
+  // Update and persist config
+  const updateConfig = (newConfig: LotteryConfig) => {
+    setConfig(newConfig);
+    saveConfigToStorage(newConfig);
+  };
 
   // Generate complete pool based on config
   const fullPool = useMemo(() => {
@@ -123,6 +118,7 @@ export default function App() {
       fast: 1500,
       normal: 3000,
       suspense: 5000,
+      tenSec: 10000,
     };
     const totalDuration = durationMap[config.duration];
     const startTime = Date.now();
@@ -238,6 +234,7 @@ export default function App() {
 
   const isFinished = config.uniqueOnly && remainingPool.length === 0 && history.length > 0;
   const canSpin = config.uniqueOnly ? remainingPool.length > 0 : fullPool.length > 0;
+  const isNameMode = config.mode === 'custom';
 
   return (
     <div className="min-h-screen flex flex-col bg-radial from-slate-100 via-amber-50/30 to-slate-200/90 text-slate-800 antialiased selection:bg-amber-500 selection:text-white">
@@ -245,16 +242,36 @@ export default function App() {
       <Header
         soundEnabled={config.soundEnabled}
         onToggleSound={() =>
-          setConfig((prev) => ({ ...prev, soundEnabled: !prev.soundEnabled }))
+          updateConfig({ ...config, soundEnabled: !config.soundEnabled })
         }
         onResetAll={handleReset}
         onToggleConfigModal={() => setIsConfigOpen(true)}
         isFullscreen={isFullscreen}
         onToggleFullscreen={handleToggleFullscreen}
+        isNameMode={isNameMode}
       />
 
       {/* Main Content Stage */}
       <main className="flex-1 w-full max-w-5xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex flex-col items-center justify-center">
+        {/* Active List Info Banner */}
+        {isNameMode && (
+          <div className="w-full max-w-4xl mx-auto mb-2 flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 bg-amber-500/10 border border-amber-300/70 rounded-2xl text-xs text-amber-900 shadow-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-bold">Danh sách đang dùng:</span>
+              <span className="font-semibold px-2.5 py-0.5 bg-white rounded-lg border border-amber-200 text-amber-800 shadow-2xs">
+                {fullPool.length} người / tên tham gia
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsConfigOpen(true)}
+              className="text-amber-800 font-semibold hover:text-amber-900 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>Quản lý & Đổi danh sách</span> →
+            </button>
+          </div>
+        )}
+
         {/* Large Prominent Display Card */}
         <DisplayNumber
           currentDisplay={currentDisplay}
@@ -265,6 +282,7 @@ export default function App() {
           totalRemaining={config.uniqueOnly ? remainingPool.length : fullPool.length}
           totalPool={fullPool.length}
           uniqueOnly={config.uniqueOnly}
+          isNameMode={isNameMode}
         />
 
         {/* Spin & Quick Controls */}
@@ -273,28 +291,30 @@ export default function App() {
           isFinished={isFinished}
           uniqueOnly={config.uniqueOnly}
           onToggleUnique={() =>
-            setConfig((prev) => ({ ...prev, uniqueOnly: !prev.uniqueOnly }))
+            updateConfig({ ...config, uniqueOnly: !config.uniqueOnly })
           }
           duration={config.duration}
           onChangeDuration={(dur) =>
-            setConfig((prev) => ({ ...prev, duration: dur }))
+            updateConfig({ ...config, duration: dur })
           }
           onSpin={handleSpin}
           onReset={handleReset}
           canSpin={canSpin}
+          isNameMode={isNameMode}
         />
 
-        {/* History of Drawn Numbers */}
+        {/* History of Drawn Names / Numbers */}
         <HistoryList
           history={history}
           onClearHistory={() => setHistory([])}
           totalPool={fullPool.length}
+          isNameMode={isNameMode}
         />
       </main>
 
       {/* Footer info */}
       <footer className="w-full py-4 text-center text-xs text-slate-400 border-t border-slate-200/60 mt-auto">
-        <span>Quay Số Ngẫu Nhiên • Trực quan, ngẫu nhiên tuyệt đối, hỗ trợ bốc thăm & trúng thưởng</span>
+        <span>Quay Số & Chọn Tên Ngẫu Nhiên • Trực quan, ngẫu nhiên tuyệt đối, hỗ trợ bốc thăm trúng thưởng & chọn người</span>
       </footer>
 
       {/* Configuration Modal */}
@@ -303,18 +323,18 @@ export default function App() {
         onClose={() => setIsConfigOpen(false)}
         config={config}
         onSaveConfig={(newConfig) => {
-          setConfig(newConfig);
-          // Remaining pool will automatically re-derive
+          updateConfig(newConfig);
         }}
         isSpinning={isSpinning}
       />
 
-      {/* Finished Modal Notice when all numbers have been drawn */}
+      {/* Finished Modal Notice when all items have been drawn */}
       <FinishedModal
         isOpen={isFinishedModalOpen}
         onClose={() => setIsFinishedModalOpen(false)}
         onReset={handleReset}
         totalDrawn={history.length}
+        isNameMode={isNameMode}
       />
     </div>
   );
