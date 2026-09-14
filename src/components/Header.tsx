@@ -1,6 +1,7 @@
 import React from 'react';
 import { Volume2, VolumeX, Maximize2, Minimize2, RotateCcw, SlidersHorizontal } from 'lucide-react';
 import { soundManager } from '../utils/audio';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface HeaderProps {
   soundEnabled: boolean;
@@ -33,6 +34,9 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* PWA Install Button */}
+        <PWAInstallButton />
+
         {/* Toggle Sound */}
         <button
           id="toggle-sound-btn"

@@ -5,6 +5,7 @@ import { Controls } from './components/Controls';
 import { ConfigurationModal } from './components/ConfigurationModal';
 import { HistoryList } from './components/HistoryList';
 import { FinishedModal } from './components/FinishedModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
 import { LotteryConfig, DrawHistoryItem, SpinDuration } from './types';
 import { soundManager } from './utils/audio';
 import { triggerCelebration, triggerGrandFinish } from './utils/confetti';
@@ -336,6 +337,9 @@ export default function App() {
         totalDrawn={history.length}
         isNameMode={isNameMode}
       />
+
+      {/* Offline Status Badge */}
+      <OfflineIndicator />
     </div>
   );
 }

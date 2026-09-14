@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="50%" stop-color="#d97706"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="50%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#78350f" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Base rounded rect -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Outer glowing rim -->
+  <circle cx="256" cy="256" r="190" fill="none" stroke="rgba(255,255,255,0.25)" stroke-width="8"/>
+  <circle cx="256" cy="256" r="165" fill="#1e293b" filter="url(#shadow)"/>
+  
+  <!-- Star accents -->
+  <path d="M256 125 L263 145 L285 145 L267 158 L274 178 L256 165 L238 178 L245 158 L227 145 L249 145 Z" fill="#fbbf24"/>
+  
+  <!-- Number / Lucky Symbol -->
+  <text x="256" y="295" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" font-size="115" text-anchor="middle" fill="url(#goldGrad)" letter-spacing="-2">777</text>
+  
+  <!-- Sub label -->
+  <text x="256" y="355" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="700" font-size="28" text-anchor="middle" fill="#fef3c7" letter-spacing="4">LUCKY</text>
+</svg>
